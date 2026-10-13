@@ -1,0 +1,961 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="application-name" content="Web Selector">
+<meta name="webselec-version" content="0.1.2-preview">
+<title>WebSelec 0.1.2 Preview</title>
+<style>
+body.dark-mode {
+    background-color: #121212;
+    color: #eeeeee;
+    color-scheme: dark;
+}
+body.dark-mode a { color: #8ab4f8; }
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea,
+body.dark-mode button { color-scheme: dark; }
+[hidden] { display: none !important; }
+.activation-box {
+    max-width: 520px;
+    margin: 40px auto;
+    padding: 16px;
+    border: 1px solid #888;
+}
+.activation-box input { max-width: 100%; }
+</style>
+</head>
+<body>
+
+<!-- ACTIVATION GATE -->
+<section id="activationScreen" class="activation-box" hidden>
+    <h1>WebSelec 0.1.2 Preview</h1>
+    <h2>Activation Required</h2>
+    <p>This preview requires a valid demo activation key.</p>
+    <p>Generate a demo key or enter one of the eight preset keys.</p>
+
+    <form id="activationForm">
+        <p>
+            <label for="activationKey">Activation key:</label><br>
+            <input id="activationKey" type="text"
+                   autocomplete="off" required
+                   placeholder="WEBSELEC-012-XXXX-XXXX">
+        </p>
+        <button type="submit">Activate WebSelec</button>
+        <button type="button" id="generateKeyButton">
+            Generate Demo Key
+        </button>
+    </form>
+
+    <p id="activationStatus" aria-live="polite"></p>
+    <hr>
+    <p><small>
+        Preview build: these are demonstration keys, not secure
+        cryptographic signatures. GitHub-based signing is planned
+        for the final v0.1.2 release.
+    </small></p>
+</section>
+
+<!-- APPLICATION -->
+<div id="application" hidden>
+<header>
+    <h1>WebSelec 0.1.2 Preview</h1>
+    <p>A simple website selector.</p>
+</header>
+
+<hr>
+
+<nav aria-label="Main navigation">
+    <button type="button" onclick="showTab('main')">Main</button>
+    <button type="button" onclick="showTab('settings')">Settings</button>
+    <button type="button" onclick="showTab('signed')">Signed</button>
+    <button type="button" onclick="showTab('ideas')">Upcoming / Ideas</button>
+</nav>
+
+<hr>
+
+<main id="main">
+    <h2>Main</h2>
+    <p>Select a website to open:</p>
+
+    <label for="websiteSearch">Search websites:</label>
+    <input id="websiteSearch" type="search"
+           placeholder="Search by name or URL"
+           oninput="renderWebsites()">
+
+    <p>
+        <button type="button" onclick="setFilter('all')">All websites</button>
+        <button type="button" onclick="setFilter('favorites')">Favorites</button>
+        <button type="button" onclick="openRandomWebsite()">Random Website</button>
+    </p>
+
+    <ul id="websiteList"></ul>
+    <p id="emptyWebsiteMessage" hidden>No matching websites found.</p>
+
+    <h3>Add a custom website</h3>
+    <form id="customWebsiteForm">
+        <p>
+            <label for="customName">Website name:</label>
+            <input id="customName" type="text" required maxlength="100">
+        </p>
+        <p>
+            <label for="customURL">Website URL:</label>
+            <input id="customURL" type="url" required
+                   placeholder="https://example.com">
+        </p>
+        <button type="submit">Add Website</button>
+    </form>
+
+    <h3>Recently visited</h3>
+    <p>Up to five websites opened through WebSelec.</p>
+    <ul id="recentList"></ul>
+    <button type="button" onclick="clearHistory()">Clear History</button>
+
+    <p>
+        <button type="button"
+                onclick="alert('Hello! This button still does nothing.')">
+            Hello this does nothing
+        </button>
+    </p>
+</main>
+
+<section id="settings" hidden>
+    <h2>Settings</h2>
+    <p>Product name: Web Selector</p>
+    <p>Internal version: 0.1.2 Preview</p>
+    <p>Display name: WebSelec 0.1.2 Preview</p>
+    <p>Made by Cat</p>
+
+    <h3>Activation</h3>
+    <p id="activationDetails">Checking activation...</p>
+    <button type="button" onclick="showActivationDetails()">
+        View Activation Status
+    </button>
+
+    <h3>Appearance</h3>
+    <p>System is the default appearance setting.</p>
+    <label for="appearance">Appearance:</label>
+    <select id="appearance">
+        <option value="system">System</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+
+    <h3>Website management</h3>
+    <p>You can add, edit or delete custom websites on the Main tab.</p>
+    <p>Favorites, custom websites and history are saved in this browser.</p>
+
+    <h3>Backup and restore</h3>
+    <p>Export your WebSelec data as a JSON file or import a backup.</p>
+    <button type="button" onclick="exportBackup()">Export JSON Backup</button>
+    <p>
+        <label for="backupFile">Import JSON Backup:</label>
+        <input id="backupFile" type="file" accept=".json,application/json">
+    </p>
+    <button type="button" onclick="importBackup()">Import Backup</button>
+
+    <h3>Update checker</h3>
+    <p id="updateStatus" aria-live="polite">
+        GitHub update checking is not connected in this preview.
+    </p>
+    <button type="button" onclick="checkForUpdates()">Check for Updates</button>
+
+    <h3>Compatibility</h3>
+    <p>Minimum supported operating systems:</p>
+    <ul>
+        <li>iOS / iPadOS 16</li>
+        <li>Windows 10</li>
+        <li>macOS 13 Ventura</li>
+    </ul>
+    <p>OS detection depends on information exposed by your browser.</p>
+    <div id="compatibility" aria-live="polite"></div>
+
+    <h3>Reset options</h3>
+    <p>Reset Settings restores the appearance preference to System.</p>
+    <button type="button" onclick="resetSettings()">Reset Settings</button>
+    <p>
+        Reset All Data deletes custom websites, favorites, recent history
+        and saved preferences. It does not erase activation.
+    </p>
+    <button type="button" onclick="resetAllData()">Reset All Data</button>
+
+    <h3>Changelog</h3>
+
+    <h4>v0.1.2 Preview — Activation Demo</h4>
+    <ul>
+        <li>Added a required activation screen.</li>
+        <li>Added eight preset demonstration activation keys.</li>
+        <li>Added demo key generation and key validation.</li>
+        <li>Saved activation status between visits in the same browser.</li>
+        <li>Prepared the project for future GitHub integration and release verification.</li>
+    </ul>
+
+    <h4>v0.1.1 — Emergency Patch</h4>
+    <ul>
+        <li>Improved Windows version detection where browser information allows it.</li>
+        <li>Preserved the existing interface and restored v0.1.0 functionality.</li>
+    </ul>
+
+    <h4>v0.1.0 — Feature Release</h4>
+    <ul>
+        <li>Added custom websites with add, edit and delete controls.</li>
+        <li>Added website search by name and URL.</li>
+        <li>Added favorites and a favorites filter.</li>
+        <li>Added recent history with a maximum of five entries.</li>
+        <li>Added random website selection from current results.</li>
+        <li>Added JSON backup export and import.</li>
+        <li>Added System, Light and Dark appearance options.</li>
+        <li>Added Reset Settings and Reset All Data.</li>
+        <li>Prepared an update-checking control.</li>
+    </ul>
+
+    <h4>v0.0.5 — Refinement Update</h4>
+    <ul>
+        <li>Improved operating system detection.</li>
+        <li>Improved compatibility checks and unknown-version handling.</li>
+    </ul>
+
+    <h4>v0.0.3</h4>
+    <ul>
+        <li>Added the Signed tab and release archive.</li>
+        <li>Added planned future versions.</li>
+    </ul>
+
+    <h4>v0.0.2</h4>
+    <ul>
+        <li>Added Settings, more websites and a changelog.</li>
+    </ul>
+
+    <h4>v0.0.1</h4>
+    <ul>
+        <li>Initial version of Web Selector.</li>
+        <li>Basic website selection.</li>
+    </ul>
+</section>
+
+<section id="signed" hidden>
+    <h2>Release Archive</h2>
+    <p>
+        This is a preview archive. GitHub release downloads and
+        cryptographic signature verification are not connected yet.
+    </p>
+
+    <h3>v0.1.2 Preview</h3>
+    <p>Status: Demo activation required — not cryptographically signed</p>
+    <p>Eight preset demo keys and saved activation.</p>
+
+    <h3>v0.1.1 — Emergency Patch</h3>
+    <p>Status: Historical release information not independently verified</p>
+
+    <h3>v0.1.0 — Feature Release</h3>
+    <p>Status: Historical release information not independently verified</p>
+
+    <h3>v0.0.5</h3>
+    <p>Status: Historical release information not independently verified</p>
+
+    <h3>v0.0.3</h3>
+    <p>Status: Unsigned</p>
+
+    <h3>v0.0.2</h3>
+    <p>Status: Unsigned</p>
+
+    <h3>v0.0.1</h3>
+    <p>Status: Unsigned</p>
+
+    <h3>Planned releases</h3>
+    <p>v0.1.2 Final — GitHub integration, automated signing, online updates and actual downloads.</p>
+    <p>v1.0.0 — Major UI redesign.</p>
+</section>
+
+<section id="ideas" hidden>
+    <h2>Upcoming / Ideas</h2>
+
+    <h3>Considering</h3>
+    <ul>
+        <li>More detailed OS and device detection.</li>
+        <li>Additional customization options.</li>
+        <li>More compatibility checks.</li>
+    </ul>
+
+    <h3>Confirmed roadmap</h3>
+    <ul>
+        <li>v0.1.2 Final — GitHub integration and automatic release signing.</li>
+        <li>v0.1.2 Final — Online update checking and actual release downloads.</li>
+        <li>v1.0.0 — Major UI redesign.</li>
+    </ul>
+</section>
+
+<hr>
+
+<footer>
+    <p>WebSelec 0.1.2 Preview — Made by Cat</p>
+    <p>Internal product: Web Selector | Internal version: 0.1.2 Preview</p>
+</footer>
+</div>
+
+<script>
+"use strict";
+
+const PRODUCT_NAME = "Web Selector";
+const INTERNAL_VERSION = "0.1.2-preview";
+
+const DATA_KEY = "webselec_v012_preview_data";
+const LEGACY_KEYS = ["webselec_v011_data", "webselec_v010_data"];
+const ACTIVATION_KEY = "webselec_v012_preview_activation";
+
+const tabs = ["main", "settings", "signed", "ideas"];
+
+/*
+ * DEMO ONLY.
+ * These eight preset keys are intentionally in the HTML source.
+ * They are not cryptographic signatures and must not be used
+ * as a real security mechanism.
+ */
+const DEMO_KEYS = [
+    "WEBSELEC-012-7KPX-2MRA",
+    "WEBSELEC-012-9VQD-4NWT",
+    "WEBSELEC-012-3HJF-8ZLC",
+    "WEBSELEC-012-6BYS-1GKE",
+    "WEBSELEC-012-5RUM-7DPA",
+    "WEBSELEC-012-2XCN-9LHF",
+    "WEBSELEC-012-4TWB-6QJG",
+    "WEBSELEC-012-8ZRA-3VKM"
+];
+
+const DEFAULT_SITES = [
+    { name: "Google", url: "https://www.google.com" },
+    { name: "YouTube", url: "https://www.youtube.com" },
+    { name: "Roblox", url: "https://www.roblox.com" },
+    { name: "Apple", url: "https://www.apple.com" },
+    { name: "GitHub", url: "https://github.com" },
+    { name: "Wikipedia", url: "https://en.wikipedia.org" },
+    { name: "Discord", url: "https://discord.com" },
+    { name: "ChatGPT", url: "https://chatgpt.com" },
+    { name: "Placeholder", url: "about:blank" }
+];
+
+const DEFAULT_DATA = {
+    customSites: [],
+    favorites: [],
+    recent: [],
+    appearance: "system"
+};
+
+let data = loadData();
+let currentFilter = "all";
+
+function safeGet(key) {
+    try {
+        return localStorage.getItem(key);
+    } catch {
+        return null;
+    }
+}
+
+function safeSet(key, value) {
+    try {
+        localStorage.setItem(key, value);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function safeRemove(key) {
+    try {
+        localStorage.removeItem(key);
+    } catch {}
+}
+
+function isValidSavedSite(site) {
+    if (!site || typeof site.name !== "string" ||
+        typeof site.url !== "string") return false;
+
+    try {
+        const url = new URL(site.url);
+        return ["http:", "https:"].includes(url.protocol);
+    } catch {
+        return false;
+    }
+}
+
+function cleanData(parsed) {
+    return {
+        customSites: Array.isArray(parsed.customSites)
+            ? parsed.customSites.filter(isValidSavedSite)
+            : [],
+        favorites: Array.isArray(parsed.favorites)
+            ? parsed.favorites.filter(v => typeof v === "string")
+            : [],
+        recent: Array.isArray(parsed.recent)
+            ? parsed.recent.filter(isValidSavedSite).slice(0, 5)
+            : [],
+        appearance: ["system", "light", "dark"].includes(parsed.appearance)
+            ? parsed.appearance
+            : "system"
+    };
+}
+
+function loadData() {
+    for (const key of [DATA_KEY, ...LEGACY_KEYS]) {
+        try {
+            const raw = safeGet(key);
+            if (!raw) continue;
+            const parsed = JSON.parse(raw);
+            const cleaned = cleanData(parsed);
+            if (key !== DATA_KEY) {
+                safeSet(DATA_KEY, JSON.stringify(cleaned));
+            }
+            return cleaned;
+        } catch {}
+    }
+    return { ...DEFAULT_DATA, customSites: [], favorites: [], recent: [] };
+}
+
+function saveData() {
+    if (!safeSet(DATA_KEY, JSON.stringify(data))) {
+        alert("WebSelec could not save your data in this browser.");
+    }
+}
+
+/* ---------------- Activation preview ---------------- */
+
+function getActivation() {
+    try {
+        const value = JSON.parse(safeGet(ACTIVATION_KEY) || "null");
+        if (!value || value.version !== INTERNAL_VERSION ||
+            !DEMO_KEYS.includes(value.key)) return null;
+        return value;
+    } catch {
+        return null;
+    }
+}
+
+function isActivated() {
+    return Boolean(getActivation());
+}
+
+function updateActivationScreen() {
+    const active = isActivated();
+    document.getElementById("activationScreen").hidden = active;
+    document.getElementById("application").hidden = !active;
+
+    if (active) {
+        showTab("main");
+        showActivationDetails();
+    }
+}
+
+function activateKey(key) {
+    const normalized = key.trim().toUpperCase();
+
+    if (!DEMO_KEYS.includes(normalized)) {
+        document.getElementById("activationStatus").textContent =
+            "Activation failed. This key does not match any of the eight preset demo keys.";
+        document.getElementById("application").hidden = true;
+        document.getElementById("activationScreen").hidden = false;
+        return;
+    }
+
+    const record = {
+        key: normalized,
+        version: INTERNAL_VERSION,
+        activatedAt: new Date().toISOString(),
+        type: "DEMO — NOT A DIGITAL SIGNATURE"
+    };
+
+    if (!safeSet(ACTIVATION_KEY, JSON.stringify(record))) {
+        document.getElementById("activationStatus").textContent =
+            "Activation could not be saved. Check your browser's local storage settings.";
+        return;
+    }
+
+    document.getElementById("activationStatus").textContent =
+        "Demo activation successful!";
+    updateActivationScreen();
+}
+
+document.getElementById("activationForm").addEventListener("submit", event => {
+    event.preventDefault();
+    activateKey(document.getElementById("activationKey").value);
+});
+
+document.getElementById("generateKeyButton").addEventListener("click", () => {
+    const key = DEMO_KEYS[Math.floor(Math.random() * DEMO_KEYS.length)];
+    document.getElementById("activationKey").value = key;
+    document.getElementById("activationStatus").textContent =
+        "A demo key has been generated. Press Activate WebSelec to continue.";
+});
+
+function showActivationDetails() {
+    const record = getActivation();
+    document.getElementById("activationDetails").textContent = record
+        ? "Activated with a demo key on " +
+          new Date(record.activatedAt).toLocaleString() +
+          ". This is not a cryptographically verified release."
+        : "This installation is not activated.";
+}
+
+/* ---------------- Navigation ---------------- */
+
+function showTab(tab) {
+    if (!isActivated() || !tabs.includes(tab)) return;
+
+    for (const name of tabs) {
+        document.getElementById(name).hidden = name !== tab;
+    }
+}
+
+/* ---------------- Websites ---------------- */
+
+function allSites() {
+    return [
+        ...DEFAULT_SITES.map(site => ({ ...site, custom: false })),
+        ...data.customSites.map(site => ({ ...site, custom: true }))
+    ];
+}
+
+function siteKey(site) {
+    return site.url;
+}
+
+function setFilter(filter) {
+    currentFilter = filter;
+    renderWebsites();
+}
+
+function getFilteredSites() {
+    const search = document.getElementById("websiteSearch").value
+        .trim().toLowerCase();
+
+    return allSites().filter(site => {
+        const matchesSearch =
+            site.name.toLowerCase().includes(search) ||
+            site.url.toLowerCase().includes(search);
+        const matchesFilter =
+            currentFilter === "all" ||
+            data.favorites.includes(siteKey(site));
+        return matchesSearch && matchesFilter;
+    });
+}
+
+function renderWebsites() {
+    const list = document.getElementById("websiteList");
+    list.replaceChildren();
+
+    const results = getFilteredSites();
+    document.getElementById("emptyWebsiteMessage").hidden = results.length > 0;
+
+    for (const site of results) {
+        const item = document.createElement("li");
+        const link = document.createElement("a");
+        link.href = site.url;
+        link.textContent = site.name;
+        link.addEventListener("click", () => addToHistory(site));
+        item.append(link, document.createTextNode(" "));
+
+        const favorite = document.createElement("button");
+        const isFavorite = data.favorites.includes(siteKey(site));
+        favorite.type = "button";
+        favorite.textContent = isFavorite ? "★ Favorite" : "☆ Favorite";
+        favorite.setAttribute("aria-pressed", String(isFavorite));
+        favorite.addEventListener("click", () => toggleFavorite(site));
+        item.append(favorite);
+
+        if (site.custom) {
+            item.append(document.createTextNode(" "));
+
+            const edit = document.createElement("button");
+            edit.type = "button";
+            edit.textContent = "Edit";
+            edit.addEventListener("click", () => editCustomSite(site));
+            item.append(edit, document.createTextNode(" "));
+
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.textContent = "Delete";
+            remove.addEventListener("click", () => deleteCustomSite(site));
+            item.append(remove);
+        }
+
+        list.append(item);
+    }
+}
+
+function toggleFavorite(site) {
+    const key = siteKey(site);
+    const index = data.favorites.indexOf(key);
+    if (index >= 0) data.favorites.splice(index, 1);
+    else data.favorites.push(key);
+    saveData();
+    renderWebsites();
+}
+
+function addToHistory(site) {
+    data.recent = data.recent.filter(item => item.url !== site.url);
+    data.recent.unshift({ name: site.name, url: site.url });
+    data.recent = data.recent.slice(0, 5);
+    saveData();
+    renderRecentHistory();
+}
+
+function renderRecentHistory() {
+    const list = document.getElementById("recentList");
+    list.replaceChildren();
+
+    for (const site of data.recent) {
+        const item = document.createElement("li");
+        const link = document.createElement("a");
+        link.href = site.url;
+        link.textContent = site.name;
+        link.addEventListener("click", () => addToHistory(site));
+        item.append(link);
+        list.append(item);
+    }
+}
+
+function clearHistory() {
+    if (!confirm("Clear your recently visited websites?")) return;
+    data.recent = [];
+    saveData();
+    renderRecentHistory();
+}
+
+function openRandomWebsite() {
+    const results = getFilteredSites();
+    if (!results.length) {
+        alert("There are no matching websites to choose from.");
+        return;
+    }
+    const site = results[Math.floor(Math.random() * results.length)];
+    addToHistory(site);
+    window.location.href = site.url;
+}
+
+function normalizeURL(value) {
+    const url = new URL(value);
+    if (!["http:", "https:"].includes(url.protocol)) {
+        throw new Error("Only HTTP and HTTPS URLs are allowed.");
+    }
+    return url.href;
+}
+
+document.getElementById("customWebsiteForm").addEventListener("submit", event => {
+    event.preventDefault();
+
+    const name = document.getElementById("customName").value.trim();
+    const rawURL = document.getElementById("customURL").value.trim();
+
+    if (!name) {
+        alert("Please enter a website name.");
+        return;
+    }
+
+    let url;
+    try {
+        url = normalizeURL(rawURL);
+    } catch {
+        alert("Enter a valid HTTP or HTTPS website URL.");
+        return;
+    }
+
+    if (allSites().some(site => site.url === url)) {
+        alert("That website is already in your list.");
+        return;
+    }
+
+    data.customSites.push({ name, url });
+    saveData();
+    event.target.reset();
+    renderWebsites();
+});
+
+function editCustomSite(site) {
+    const newName = prompt("Website name:", site.name);
+    if (newName === null) return;
+    const name = newName.trim();
+
+    if (!name) {
+        alert("The website name cannot be empty.");
+        return;
+    }
+
+    const newURL = prompt("Website URL:", site.url);
+    if (newURL === null) return;
+
+    let url;
+    try {
+        url = normalizeURL(newURL.trim());
+    } catch {
+        alert("Enter a valid HTTP or HTTPS website URL.");
+        return;
+    }
+
+    if (allSites().some(item => item.url === url && item.url !== site.url)) {
+        alert("Another website already uses that URL.");
+        return;
+    }
+
+    const oldURL = site.url;
+    const index = data.customSites.findIndex(item => item.url === oldURL);
+    if (index < 0) return;
+
+    data.customSites[index] = { name, url };
+    data.favorites = data.favorites.map(value => value === oldURL ? url : value);
+    data.recent = data.recent.map(item =>
+        item.url === oldURL ? { name, url } : item
+    );
+
+    saveData();
+    renderWebsites();
+    renderRecentHistory();
+}
+
+function deleteCustomSite(site) {
+    if (!confirm('Delete the custom website "' + site.name + '"?')) return;
+
+    data.customSites = data.customSites.filter(item => item.url !== site.url);
+    data.favorites = data.favorites.filter(value => value !== site.url);
+    data.recent = data.recent.filter(item => item.url !== site.url);
+
+    saveData();
+    renderWebsites();
+    renderRecentHistory();
+}
+
+/* ---------------- Backup and restore ---------------- */
+
+function exportBackup() {
+    const backup = {
+        product: PRODUCT_NAME,
+        version: INTERNAL_VERSION,
+        exportedAt: new Date().toISOString(),
+        data
+    };
+
+    const blob = new Blob([JSON.stringify(backup, null, 2)], {
+        type: "application/json"
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "webselec-backup.json";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function importBackup() {
+    const file = document.getElementById("backupFile").files[0];
+    if (!file) {
+        alert("Choose a JSON backup file first.");
+        return;
+    }
+
+    try {
+        const parsed = JSON.parse(await file.text());
+        const incoming = parsed.data || parsed;
+        if (!incoming || typeof incoming !== "object") throw new Error();
+
+        const cleaned = cleanData(incoming);
+        if (!confirm("Import this backup and replace your current WebSelec data?")) {
+            return;
+        }
+
+        data = cleaned;
+        saveData();
+        applyAppearance();
+        syncSettingsControls();
+        renderWebsites();
+        renderRecentHistory();
+        alert("Backup imported successfully.");
+    } catch {
+        alert("The selected file is not a valid WebSelec JSON backup.");
+    }
+}
+
+/* ---------------- Appearance and resets ---------------- */
+
+function applyAppearance() {
+    const dark = data.appearance === "dark" ||
+        (data.appearance === "system" &&
+         window.matchMedia &&
+         window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+    document.body.classList.toggle("dark-mode", Boolean(dark));
+}
+
+function syncSettingsControls() {
+    document.getElementById("appearance").value = data.appearance;
+}
+
+document.getElementById("appearance").addEventListener("change", event => {
+    const value = event.target.value;
+    if (!["system", "light", "dark"].includes(value)) return;
+    data.appearance = value;
+    saveData();
+    applyAppearance();
+});
+
+if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)")
+        .addEventListener("change", () => {
+            if (data.appearance === "system") applyAppearance();
+        });
+}
+
+function resetSettings() {
+    if (!confirm("Reset your settings to their defaults?")) return;
+    data.appearance = "system";
+    saveData();
+    syncSettingsControls();
+    applyAppearance();
+}
+
+function resetAllData() {
+    if (!confirm(
+        "Reset ALL WebSelec data? Custom websites, favorites and history will be deleted."
+    )) return;
+
+    if (!confirm("Are you absolutely sure? This cannot be undone.")) return;
+
+    data = { ...DEFAULT_DATA, customSites: [], favorites: [], recent: [] };
+    saveData();
+    syncSettingsControls();
+    applyAppearance();
+    renderWebsites();
+    renderRecentHistory();
+    document.getElementById("websiteSearch").value = "";
+    document.getElementById("customWebsiteForm").reset();
+    setFilter("all");
+    /* Activation is stored separately and is intentionally preserved. */
+}
+
+/* ---------------- Updates and compatibility ---------------- */
+
+function checkForUpdates() {
+    document.getElementById("updateStatus").textContent =
+        "No online update check was performed. GitHub integration is planned " +
+        "for the final v0.1.2 release.";
+}
+
+function addTextElement(parent, tag, text) {
+    const element = document.createElement(tag);
+    element.textContent = text;
+    parent.append(element);
+    return element;
+}
+
+function detectOS() {
+    const ua = navigator.userAgent;
+    const platform = navigator.platform || "";
+
+    if (/iPhone|iPad|iPod/i.test(ua)) {
+        const match = ua.match(/OS (\d+)[._](\d+)/i);
+        return {
+            name: /iPad/i.test(ua) ? "iPadOS" : "iOS",
+            version: match ? match[1] + "." + match[2] : null,
+            major: match ? Number(match[1]) : null,
+            source: "User agent"
+        };
+    }
+
+    if (/Macintosh|MacIntel/i.test(ua + " " + platform) &&
+        (navigator.maxTouchPoints || 0) > 1) {
+        return { name: "iPadOS", version: null, major: null, source: "iPad desktop mode" };
+    }
+
+    if (/Android/i.test(ua)) {
+        const match = ua.match(/Android\s([\d.]+)/i);
+        return {
+            name: "Android",
+            version: match ? match[1] : null,
+            major: match ? Number(match[1].split(".")[0]) : null,
+            source: "User agent"
+        };
+    }
+
+    if (/Windows/i.test(ua)) {
+        return {
+            name: "Windows",
+            version: null,
+            major: null,
+            source: "User agent (exact Windows version unavailable)"
+        };
+    }
+
+    if (/Macintosh|Mac OS X/i.test(ua + " " + platform)) {
+        const match = ua.match(/Mac OS X (\d+)[._](\d+)(?:[._](\d+))?/i);
+        const version = match
+            ? match[1] + "." + match[2] + (match[3] ? "." + match[3] : "")
+            : null;
+        return {
+            name: "macOS",
+            version,
+            major: version ? Number(version.split(".")[0]) : null,
+            source: "User agent"
+        };
+    }
+
+    if (/CrOS/i.test(ua)) {
+        return { name: "ChromeOS", version: null, major: null, source: "User agent" };
+    }
+
+    if (/Linux/i.test(ua + " " + platform)) {
+        return { name: "Linux", version: null, major: null, source: "Platform" };
+    }
+
+    return { name: "Unknown", version: null, major: null, source: "Unavailable" };
+}
+
+function renderCompatibility(os) {
+    const output = document.getElementById("compatibility");
+    output.replaceChildren();
+
+    addTextElement(output, "h3", "Compatibility result");
+    addTextElement(output, "p", "Detected operating system: " + os.name);
+    addTextElement(output, "p", "Detected version: " + (os.version || "Unknown"));
+    addTextElement(output, "p", "Detection method: " + os.source);
+
+    const unknown =
+        "Web Selector has seen that your OS version isn't shown. " +
+        "You're still able to use Web Selector, but you might be limited.";
+
+    let message = unknown;
+
+    if (["iOS", "iPadOS"].includes(os.name) && os.major !== null) {
+        message = os.major < 16
+            ? "Oh, sorry. We don't fucking support your OS/device."
+            : "Your detected OS meets the minimum version.";
+    } else if (os.name === "macOS" && os.major !== null) {
+        message = os.major < 13
+            ? "Oh, sorry. We don't fucking support your OS/device."
+            : "Your detected macOS version meets the minimum requirement.";
+    } else if (os.name === "Windows" || os.name === "Unknown") {
+        message = unknown;
+    } else if (os.name !== "macOS" && os.name !== "iOS" && os.name !== "iPadOS") {
+        message = "Oh, sorry. We don't officially support this OS/device.";
+    }
+
+    addTextElement(output, "p", message);
+}
+
+function checkCompatibility() {
+    renderCompatibility(detectOS());
+}
+
+/* ---------------- Start-up ---------------- */
+
+syncSettingsControls();
+applyAppearance();
+renderWebsites();
+renderRecentHistory();
+checkCompatibility();
+updateActivationScreen();
+</script>
+
+</body>
+</html>
