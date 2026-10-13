@@ -3,6 +3,12 @@ name: Sign published WebSelec releases
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to sign (for example 0.1.2)
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -39,11 +45,20 @@ jobs:
           WEBSELEC_SIGNING_PASSWORD: ${{ secrets.WEBSELEC_SIGNING_PASSWORD }}
           PRIVATE_KEY_PATH: ${{ runner.temp }}/webselec-private-key.pem
           RELEASE_EVENT_PATH: ${{ github.event_path }}
+          RELEASE_TAG_INPUT: ${{ inputs.tag }}
+          EVENT_NAME: ${{ github.event_name }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           python - <<'PY'
           import hashlib, json, os, pathlib, urllib.request
           event = json.loads(pathlib.Path(os.environ["RELEASE_EVENT_PATH"]).read_text())
-          release = event["release"]
+          if os.environ["EVENT_NAME"] == "workflow_dispatch":
+              tag = os.environ["RELEASE_TAG_INPUT"]
+              req = urllib.request.Request("https://api.github.com/repos/" + os.environ["REPOSITORY"] + "/releases/tags/" + tag, headers={"User-Agent": "WebSelec-Release-Signer", "Accept": "application/vnd.github+json"})
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  release = json.load(response)
+          else:
+              release = event["release"]
           assets = []
           for asset in release.get("assets", []):
               name = asset["name"]
@@ -72,10 +87,11 @@ jobs:
           pathlib.Path("release-manifest.json").write_text(
               json.dumps(manifest, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8"
           )
+          pathlib.Path(os.environ["RUNNER_TEMP"] + "/release-tag").write_text(release["tag_name"], encoding="utf-8")
           PY
           python tools/webselec_sign.py sign --private-key "$PRIVATE_KEY_PATH" --manifest release-manifest.json --signature release-manifest.sig
 
       - name: Upload signed manifest to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" release-manifest.json release-manifest.sig --repo "${{ github.repository }}" --clobber
+        run: gh release upload "$(cat "$RUNNER_TEMP/release-tag")" release-manifest.json release-manifest.sig --repo "${{ github.repository }}" --clobber
