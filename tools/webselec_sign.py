@@ -21,8 +21,7 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import (
-    BestAvailableEncryption, NoEncryption, load_pem_private_key,
-    load_pem_public_key,
+    BestAvailableEncryption, load_pem_private_key,
 )
 from cryptography.hazmat.primitives.asymmetric.utils import (
     decode_dss_signature, encode_dss_signature,
@@ -69,7 +68,8 @@ def keygen(args: argparse.Namespace) -> int:
 
 
 def load_private(path: str):
-    password = getpass.getpass("Private-key password: ").encode("utf-8")
+    env_password = os.environ.get("WEBSELEC_SIGNING_PASSWORD")
+    password = (env_password if env_password is not None else getpass.getpass("Private-key password: ")).encode("utf-8")
     return load_pem_private_key(Path(path).read_bytes(), password=password)
 
 
@@ -90,10 +90,7 @@ def sign(args: argparse.Namespace) -> int:
 def verify(args: argparse.Namespace) -> int:
     public_obj = json.loads(Path(args.public_key).read_text(encoding="utf-8"))
     public_bytes = base64.b64decode(public_obj["publicKeySpkiBase64"], validate=True)
-    key = load_pem_public_key(
-        serialization.Encoding.PEM,
-        # This branch intentionally replaced below; PEM public keys are accepted directly.
-    ) if False else serialization.load_der_public_key(public_bytes)
+    key = serialization.load_der_public_key(public_bytes)
     if not isinstance(key, ec.EllipticCurvePublicKey) or not isinstance(key.curve, ec.SECP256R1):
         raise SystemExit("Expected an ECDSA P-256 public key.")
     raw_sig = base64.b64decode(Path(args.signature).read_text(encoding="ascii").strip(), validate=True)
