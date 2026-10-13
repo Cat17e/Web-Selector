@@ -184,13 +184,14 @@ body.dark-mode button { color-scheme: dark; }
 
     <h3>Changelog</h3>
 
-    <h4>v0.1.2 Preview — Activation Demo</h4>
+    <h4>v0.1.2 Preview — Activation Demo & Signing Preparation</h4>
     <ul>
         <li>Added a required activation screen.</li>
         <li>Added eight preset demonstration activation keys.</li>
         <li>Added demo key generation and key validation.</li>
         <li>Saved activation status between visits in the same browser.</li>
         <li>Prepared the project for future GitHub integration and release verification.</li>
+        <li>Repository tooling now supports ECDSA P-256 release-manifest signing; browser verification is still pending.</li>
     </ul>
 
     <h4>v0.1.1 — Emergency Patch</h4>
@@ -239,8 +240,8 @@ body.dark-mode button { color-scheme: dark; }
 <section id="signed" hidden>
     <h2>Release Archive</h2>
     <p>
-        This is a preview archive. GitHub release downloads and
-        cryptographic signature verification are not connected yet.
+        This is a preview archive. Repository-side ECDSA signing tools and a GitHub Actions
+        workflow now exist, but this preview app does not yet verify release signatures.
     </p>
 
     <h3>v0.1.2 Preview</h3>
@@ -277,13 +278,14 @@ body.dark-mode button { color-scheme: dark; }
     <ul>
         <li>More detailed OS and device detection.</li>
         <li>Additional customization options.</li>
+        <li>Considering a new product from WebSelec called WebSelec Pro.</li>
         <li>More compatibility checks.</li>
     </ul>
 
     <h3>Confirmed roadmap</h3>
     <ul>
         <li>v0.1.2 Final — GitHub integration and automatic release signing.</li>
-        <li>v0.1.2 Final — Online update checking and actual release downloads.</li>
+        <li>v0.1.2 Final — Online update checking, signed-manifest verification and actual release downloads.</li>
         <li>v1.0.0 — Major UI redesign.</li>
     </ul>
 </section>
