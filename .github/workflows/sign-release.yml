@@ -85,7 +85,7 @@ jobs:
               "hashAlgorithm": "SHA-256"
           }
           pathlib.Path("release-manifest.json").write_text(
-              json.dumps(manifest, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8"
+              json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
           )
           pathlib.Path(os.environ["RUNNER_TEMP"] + "/release-tag").write_text(release["tag_name"], encoding="utf-8")
           PY
