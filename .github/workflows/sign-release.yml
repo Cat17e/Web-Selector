@@ -1,0 +1,81 @@
+name: Sign published WebSelec releases
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  sign-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install signing dependency
+        run: python -m pip install cryptography
+
+      - name: Prepare private key from repository secret
+        env:
+          WEBSELEC_PRIVATE_KEY_B64: ${{ secrets.WEBSELEC_PRIVATE_KEY_B64 }}
+        run: |
+          if [ -z "$WEBSELEC_PRIVATE_KEY_B64" ]; then
+            echo "::error::Missing WEBSELEC_PRIVATE_KEY_B64 repository secret."
+            exit 1
+          fi
+          printf '%s' "$WEBSELEC_PRIVATE_KEY_B64" | base64 --decode > "$RUNNER_TEMP/webselec-private-key.pem"
+          chmod 600 "$RUNNER_TEMP/webselec-private-key.pem"
+
+      - name: Build signed release manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WEBSELEC_SIGNING_PASSWORD: ${{ secrets.WEBSELEC_SIGNING_PASSWORD }}
+          PRIVATE_KEY_PATH: ${{ runner.temp }}/webselec-private-key.pem
+          RELEASE_EVENT_PATH: ${{ github.event_path }}
+        run: |
+          python - <<'PY'
+          import hashlib, json, os, pathlib, urllib.request
+          event = json.loads(pathlib.Path(os.environ["RELEASE_EVENT_PATH"]).read_text())
+          release = event["release"]
+          assets = []
+          for asset in release.get("assets", []):
+              name = asset["name"]
+              if name in ("release-manifest.json", "release-manifest.sig"):
+                  continue
+              req = urllib.request.Request(asset["browser_download_url"], headers={"User-Agent": "WebSelec-Release-Signer"})
+              with urllib.request.urlopen(req, timeout=60) as response:
+                  digest = hashlib.sha256(response.read()).hexdigest()
+              assets.append({
+                  "name": name,
+                  "url": asset["browser_download_url"],
+                  "size": asset["size"],
+                  "sha256": digest
+              })
+          if not assets:
+              raise SystemExit("No release assets found; refusing to sign an empty release.")
+          manifest = {
+              "schema": "webselec-release-manifest-v1",
+              "product": "WebSelec",
+              "version": release["tag_name"],
+              "publishedAt": release.get("published_at"),
+              "htmlAssets": assets,
+              "signatureAlgorithm": "ECDSA-P256-SHA256",
+              "hashAlgorithm": "SHA-256"
+          }
+          pathlib.Path("release-manifest.json").write_text(
+              json.dumps(manifest, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8"
+          )
+          PY
+          python tools/webselec_sign.py sign --private-key "$PRIVATE_KEY_PATH" --manifest release-manifest.json --signature release-manifest.sig
+
+      - name: Upload signed manifest to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" release-manifest.json release-manifest.sig --repo "${{ github.repository }}" --clobber
